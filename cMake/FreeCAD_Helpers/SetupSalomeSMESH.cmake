@@ -10,53 +10,64 @@ macro(SetupSalomeSMESH)
         set(SMESH_VERSION_PATCH 1)
         set(SMESH_VERSION_TWEAK 0)
 
-        #if we use smesh we definitely also need vtk, no matter of external or internal smesh
+        # if we use smesh we definitely also need vtk, no matter of external or internal smesh
         set (VTK_COMPONENTS
-            vtkCommonCore
-            vtkCommonDataModel
-            vtkFiltersVerdict
-            vtkIOXML
-            vtkFiltersCore
-            vtkFiltersGeneral
-            vtkIOLegacy
-            vtkFiltersExtraction
-            vtkFiltersSources
-            vtkFiltersGeometry
+            CommonDataModel
+            FiltersVerdict
+            IOXML
+            FiltersCore
+            FiltersGeneral
+            IOLegacy
+            FiltersExtraction
+            FiltersSources
+            FiltersGeometry
         )
-
-        # check which modules are available
+        # Modules used by FreeCAD on linux and windows only?
         if(UNIX OR WIN32)
+            list(APPEND VTK_COMPONENTS IOMPIParallel ParallelMPI hdf5 FiltersParallelDIY2 RenderingCore InteractionStyle RenderingFreeType RenderingOpenGL2)
+        endif()
+
+        # Make sure were at least version 6 and handle version 9 gracefully.
+        find_package(VTK QUIET)
+        message(STATUS "Found VTK verion: ${VTK_VERSION}")
+        if(VTK_FOUND AND ${VTK_VERSION_MAJOR} VERSION_EQUAL 9)
+            find_package(VTK COMPONENTS CommonCore REQUIRED)
+            message(STATUS "VTK components: ${VTK_AVAILABLE_COMPONENTS}")
+        elseif(VTK_FOUND AND ${VTK_VERSION_MAJOR} VERSION_GREATER 5)
+            list(TRANSFORM "${VTK_COMPONENTS}" PREPEND "vtk")
             find_package(VTK COMPONENTS vtkCommonCore REQUIRED NO_MODULE)
-            list(APPEND VTK_COMPONENTS vtkIOMPIParallel vtkParallelMPI vtkhdf5 vtkFiltersParallelDIY2 vtkRenderingCore vtkInteractionStyle vtkRenderingFreeType vtkRenderingOpenGL2)
+            # Find if other modules are available
             foreach(_module ${VTK_COMPONENTS})
                 list (FIND VTK_MODULES_ENABLED ${_module} _index)
                 if (${_index} GREATER -1)
                     list(APPEND AVAILABLE_VTK_COMPONENTS ${_module})
                 endif()
             endforeach()
-        endif()
 
-        # don't check VERSION 6 as this would exclude VERSION 7
-        if(AVAILABLE_VTK_COMPONENTS)
-            message(STATUS "VTK components: ${AVAILABLE_VTK_COMPONENTS}")
-            find_package(VTK COMPONENTS ${AVAILABLE_VTK_COMPONENTS} REQUIRED NO_MODULE)
-        else()
-            message(STATUS "VTK components: not found or used")
-            find_package(VTK REQUIRED NO_MODULE)
-        endif()
+            # don't check VERSION 6 as this would exclude VERSION 7
+            if(AVAILABLE_VTK_COMPONENTS)
+                message(STATUS "VTK components: ${AVAILABLE_VTK_COMPONENTS}")
+                find_package(VTK COMPONENTS ${AVAILABLE_VTK_COMPONENTS} REQUIRED NO_MODULE)
+            else()
+                message(STATUS "VTK components: not found or used")
+                find_package(VTK REQUIRED NO_MODULE)
+            endif()
 
-        set(BUILD_FEM_VTK ON)
-        if(${VTK_MAJOR_VERSION} LESS 6)
-            message( FATAL_ERROR "Found VTK version is <6, this is not compatible" )
-        endif()
-        if(${VTK_MAJOR_VERSION} EQUAL 6)
-            if(${VTK_MINOR_VERSION} LESS 2)
-                set(VTK_OPTIONS -DVTK_NO_QUAD_POLY)
+            set(BUILD_FEM_VTK ON)
+            if(${VTK_MAJOR_VERSION} LESS 6)
+                message(FATAL_ERROR "Found VTK version is <6, this is not compatible" )
             endif()
-            if(${VTK_MINOR_VERSION} EQUAL 0)
-                message(WARNING "VTK equal to 6.0 cannot be used with c++11, FEM postprocessing is disabled")
-                set(BUILD_FEM_VTK OFF)
+            if(${VTK_MAJOR_VERSION} EQUAL 6)
+                if(${VTK_MINOR_VERSION} LESS 2)
+                    set(VTK_OPTIONS -DVTK_NO_QUAD_POLY)
+                endif()
+                if(${VTK_MINOR_VERSION} EQUAL 0)
+                    message(WARNING "VTK 6.0 cannot be used with c++11, FEM postprocessing is disabled")
+                    set(BUILD_FEM_VTK OFF)
+                endif()
             endif()
+        elseif(NOT VTK_FOUND)
+            message(FATAL_ERROR "VTK not found.")
         endif()
         # on openSUSE 13.1 VTK_LIBRARIES ends with "optimized" keyword
         list(REMOVE_ITEM VTK_LIBRARIES "optimized" "debug")
