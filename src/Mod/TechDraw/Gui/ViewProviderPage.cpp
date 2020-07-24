@@ -30,11 +30,11 @@
 # include <QMessageBox>
 # include <QTextStream>
 # include <QTimer>
-#include <QList>
-#include <QPointer>
-#include <boost/signals2.hpp>
-#include <boost/signals2/connection.hpp>
-#include <boost/bind.hpp>
+# include <QList>
+# include <QPointer>
+# include <boost/signals2.hpp>
+# include <boost/signals2/connection.hpp>
+# include <boost_bind_bind.hpp>
 
 #endif
 
@@ -73,6 +73,7 @@
 
 using namespace TechDrawGui;
 using namespace TechDraw;
+namespace bp = boost::placeholders;
 
 #define _SHOWDRAWING 10
 #define _TOGGLEUPDATE 11
@@ -86,7 +87,8 @@ PROPERTY_SOURCE(TechDrawGui::ViewProviderPage, Gui::ViewProviderDocumentObject)
 ViewProviderPage::ViewProviderPage()
   : m_mdiView(0),
     m_docReady(true),
-    m_pageName("")
+    m_pageName(""),
+    m_graphicsView(nullptr)
 {
     sPixmap = "TechDraw_Tree_Page";
     static const char *group = "Base";
@@ -107,7 +109,7 @@ void ViewProviderPage::attach(App::DocumentObject *pcFeat)
 {
     ViewProviderDocumentObject::attach(pcFeat);
 
-    auto bnd = boost::bind(&ViewProviderPage::onGuiRepaint, this, _1);
+    auto bnd = boost::bind(&ViewProviderPage::onGuiRepaint, this, bp::_1);
     auto feature = getDrawPage();
     if (feature != nullptr) {
         connectGuiRepaint = feature->signalGuiPaint.connect(bnd);
@@ -220,8 +222,8 @@ bool ViewProviderPage::onDelete(const std::vector<std::string> &)
         QString bodyMessage;
         QTextStream bodyMessageStream(&bodyMessage);
         bodyMessageStream << qApp->translate("Std_Delete",
-            "The page is not empty, therefore the\n following referencing objects might be lost.\n\n"
-            "Are you sure you want to continue?\n");
+            "The page is not empty, therefore the\nfollowing referencing objects might be lost.\n\n"
+            "Are you sure you want to continue?");
         for (auto ObjIterator : objs)
             bodyMessageStream << '\n' << QString::fromUtf8(ObjIterator->Label.getValue());
         // show and evaluate the dialog
@@ -448,10 +450,12 @@ void ViewProviderPage::setTemplateMarkers(bool state)
     Gui::Document* guiDoc = Gui::Application::Instance->getDocument(templateFeat->getDocument());
     Gui::ViewProvider* vp = guiDoc->getViewProvider(templateFeat);
     ViewProviderTemplate* vpt = dynamic_cast<ViewProviderTemplate*>(vp);
-    vpt->setMarkers(state);
-    QGITemplate* t = vpt->getQTemplate();
-    if (t != nullptr) {
-        t->updateView(true);
+    if (vpt) {
+        vpt->setMarkers(state);
+        QGITemplate* t = vpt->getQTemplate();
+        if (t != nullptr) {
+            t->updateView(true);
+        }
     }
 }
 

@@ -3599,7 +3599,7 @@ def export(objectslist, filename, nospline=False, lwPoly=False):
     if dxfLibrary:
         global exportList
         exportList = objectslist
-        exportList = Draft.getGroupContents(exportList)
+        exportList = Draft.get_group_contents(exportList)
 
         nlist = []
         exportLayers = []
@@ -3932,7 +3932,7 @@ def exportPage(page, filename):
     c = dxfcounter()
     pat = re.compile("(_handle_)")
     template = pat.sub(c.incr, template)
-    f = pythonopen(filename, "wb")
+    f = pythonopen(filename, "w")
     f.write(template)
     f.close()
 

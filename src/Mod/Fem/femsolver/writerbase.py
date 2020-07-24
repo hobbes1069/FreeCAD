@@ -68,6 +68,7 @@ class FemInputWriter():
         self.initialtemperature_objects = member.cons_initialtemperature
         self.planerotation_objects = member.cons_planerotation
         self.pressure_objects = member.cons_pressure
+        self.sectionprint_objects = member.cons_sectionprint
         self.selfweight_objects = member.cons_selfweight
         self.temperature_objects = member.cons_temperature
         self.tie_objects = member.cons_tie
@@ -77,7 +78,7 @@ class FemInputWriter():
         # if dir_name was not given or if it exists but isn't empty: create a temporary dir
         # Purpose: makes sure the analysis can be run even on wired situation
         if not dir_name:
-            FreeCAD.Console.PrintError(
+            FreeCAD.Console.PrintWarning(
                 "Error: FemInputWriter has no working_dir --> "
                 "we are going to make a temporary one!\n"
             )

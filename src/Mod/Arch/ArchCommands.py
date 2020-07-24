@@ -692,7 +692,7 @@ def download(url,force=False):
 
 def check(objectslist,includehidden=False):
     """check(objectslist,includehidden=False): checks if the given objects contain only solids"""
-    objs = Draft.getGroupContents(objectslist)
+    objs = Draft.get_group_contents(objectslist)
     if not includehidden:
         objs = Draft.removeHidden(objs)
     bad = []
@@ -751,6 +751,8 @@ def pruneIncluded(objectslist,strict=False):
                             if hasattr(parent,"Host") and (parent.Host == obj):
                                 pass
                             elif hasattr(parent,"Hosts") and (obj in parent.Hosts):
+                                pass
+                            elif hasattr(parent,"TypeId") and (parent.TypeId == "Part::Mirroring"):
                                 pass
                             elif hasattr(parent,"CloneOf"):
                                 if parent.CloneOf:

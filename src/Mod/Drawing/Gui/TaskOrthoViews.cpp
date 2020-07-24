@@ -37,12 +37,13 @@
 #include <Mod/Part/App/PartFeature.h>
 #include <Mod/Drawing/App/FeaturePage.h>
 
-#include <boost/bind.hpp>
+#include <boost_bind_bind.hpp>
 
 
 using namespace Gui;
 using namespace DrawingGui;
 using namespace std;
+namespace bp = boost::placeholders;
 
 
 #ifndef PI
@@ -94,11 +95,11 @@ void pagesize(string & page_template, int dims[4], int block[4])
         {
             if (line.find("<!-- Working space") != string::npos)
             {
-                sscanf(line.c_str(), "%*s %*s %*s %d %d %d %d", &dims[0], &dims[1], &dims[2], &dims[3]);        //eg "    <!-- Working space 10 10 410 287 -->"
+                (void)sscanf(line.c_str(), "%*s %*s %*s %d %d %d %d", &dims[0], &dims[1], &dims[2], &dims[3]);        //eg "    <!-- Working space 10 10 410 287 -->"
                 getline (file,line);
 
                 if (line.find("<!-- Title block") != string::npos)
-                    sscanf(line.c_str(), "%*s %*s %*s %d %d %d %d", &t0, &t1, &t2, &t3);    //eg "    <!-- Working space 10 10 410 287 -->"
+                    (void)sscanf(line.c_str(), "%*s %*s %*s %d %d %d %d", &t0, &t1, &t2, &t3);    //eg "    <!-- Working space 10 10 410 287 -->"
 
                 break;
             }
@@ -304,9 +305,9 @@ OrthoViews::OrthoViews(App::Document* doc, const char * pagename, const char * p
     num_gaps_x = num_gaps_y = 0;
 
     this->connectDocumentDeletedObject = doc->signalDeletedObject.connect(boost::bind
-        (&OrthoViews::slotDeletedObject, this, _1));
+        (&OrthoViews::slotDeletedObject, this, bp::_1));
     this->connectApplicationDeletedDocument = App::GetApplication().signalDeleteDocument.connect(boost::bind
-        (&OrthoViews::slotDeletedDocument, this, _1));
+        (&OrthoViews::slotDeletedDocument, this, bp::_1));
 }
 
 OrthoViews::~OrthoViews()

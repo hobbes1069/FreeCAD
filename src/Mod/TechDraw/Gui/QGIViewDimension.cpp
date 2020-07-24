@@ -39,6 +39,7 @@
   # include <QGraphicsScene>
   # include <QGraphicsSceneMouseEvent>
   # include <QPainter>
+  # include <QPainterPath>
   # include <QPaintDevice>
   # include <QSvgGenerator>
 
@@ -94,6 +95,7 @@ enum SnapMode{
 
 QGIDatumLabel::QGIDatumLabel()
 {
+    verticalSep = false;
     posX = 0;
     posY = 0;
 

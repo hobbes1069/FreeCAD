@@ -1841,11 +1841,19 @@ private:
             if (!p) {
                 throw Py::TypeError("** makeWireString can't convert PyString.");
             }
+#if PY_VERSION_HEX >= 0x03030000
+            pysize = PyUnicode_GetLength(p);
+#else
             pysize = PyUnicode_GetSize(p);
+#endif
             unichars = PyUnicode_AS_UNICODE(p);
         }
         else if (PyUnicode_Check(intext)) {
+#if PY_VERSION_HEX >= 0x03030000
+            pysize = PyUnicode_GetLength(intext);
+#else
             pysize = PyUnicode_GetSize(intext);
+#endif
             unichars = PyUnicode_AS_UNICODE(intext);
         }
         else {
@@ -2202,16 +2210,18 @@ private:
         if (!PyArg_ParseTuple(args.ptr(), "sss",&sub,&mapped,&element))
             throw Py::Exception();
         std::string subname(sub);
-        if(subname.size() && subname[subname.size()-1]!='.')
+        if (subname.size() && subname[subname.size()-1]!='.')
             subname += '.';
-        if(mapped && mapped[0]) {
-            if(!Data::ComplexGeoData::isMappedElement(mapped))
+        if (mapped && mapped[0]) {
+            if (!Data::ComplexGeoData::isMappedElement(mapped))
                 subname += Data::ComplexGeoData::elementMapPrefix();
             subname += mapped;
-            if(element && element[0] && subname[subname.size()-1]!='.')
-                subname += '.';
         }
-        subname += element;
+        if (element && element[0]) {
+            if (subname.size() && subname[subname.size()-1]!='.')
+                subname += '.';
+            subname += element;
+        }
         return Py::String(subname);
     }
 };

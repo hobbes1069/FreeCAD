@@ -21,27 +21,30 @@
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-"""Provides various functions for offset operations."""
+"""Provides various functions to work with offsets."""
 ## @package offsets
-# \ingroup DRAFTGEOUTILS
-# \brief Provides various functions for offset operations.
+# \ingroup draftgeoutils
+# \brief Provides various functions to work with offsets.
 
 import lazy_loader.lazy_loader as lz
 
-import FreeCAD
+import FreeCAD as App
 import DraftVecUtils
 
 from draftgeoutils.general import geomType, vec
-from draftgeoutils.intersections import wiresIntersect, connect
 from draftgeoutils.geometry import getNormal
 from draftgeoutils.wires import isReallyClosed
+from draftgeoutils.intersections import wiresIntersect, connect
 
 # Delay import of module until first use because it is heavy
 Part = lz.LazyLoader("Part", globals(), "Part")
 
+## \addtogroup draftgeoutils
+# @{
+
 
 def pocket2d(shape, offset):
-    """Return a list of wires obtained from offseting wires from the shape.
+    """Return a list of wires obtained from offsetting wires from the shape.
 
     Return a list of wires obtained from offsetting the wires
     from the given shape by the given offset, and intersection if needed.
@@ -134,18 +137,18 @@ def offset(edge, vector, trim=False):
     None if there is a problem.
     """
     if (not isinstance(edge, Part.Shape)
-            or not isinstance(vector, FreeCAD.Vector)):
+            or not isinstance(vector, App.Vector)):
         return None
 
     if geomType(edge) == "Line":
-        v1 = FreeCAD.Vector.add(edge.Vertexes[0].Point, vector)
-        v2 = FreeCAD.Vector.add(edge.Vertexes[-1].Point, vector)
+        v1 = App.Vector.add(edge.Vertexes[0].Point, vector)
+        v2 = App.Vector.add(edge.Vertexes[-1].Point, vector)
         return Part.LineSegment(v1, v2).toShape()
 
     elif geomType(edge) == "Circle":
         rad = edge.Vertexes[0].Point.sub(edge.Curve.Center)
         curve = Part.Circle(edge.Curve)
-        curve.Radius = FreeCAD.Vector.add(rad, vector).Length
+        curve.Radius = App.Vector.add(rad, vector).Length
         if trim:
             return Part.ArcOfCircle(curve,
                                     edge.FirstParameter,
@@ -380,7 +383,14 @@ def offsetWire(wire, dvec, bind=False, occ=False,
             # This is a xor
             if (curOrientation == firstOrientation) != (curDir == firstDir):
                 if curAlign in ['Left', 'Right']:
-                    nedge = curredge
+                    # ArchWall has an Offset properties for user to offset
+                    # the basewire before creating the base profile of wall
+                    # (not applicable to 'Center' align)
+                    if basewireOffset:
+                        delta = DraftVecUtils.scaleTo(delta, basewireOffset)
+                        nedge = offset(curredge,delta,trim=True)
+                    else:
+                        nedge = curredge
                 elif curAlign == 'Center':
                     delta = delta.negative()
                     nedge = offset(curredge, delta, trim=True)
@@ -391,8 +401,10 @@ def offsetWire(wire, dvec, bind=False, occ=False,
                 # the basewire before creating the base profile of wall
                 # (not applicable to 'Center' align)
                 if basewireOffset:
-                    delta = DraftVecUtils.scaleTo(delta,
-                                                  delta.Length + basewireOffset)
+                    if curAlign in ['Left', 'Right']:
+                        delta = DraftVecUtils.scaleTo(delta,
+                                                      delta.Length + basewireOffset)
+                    #else: # elif curAlign == 'Center': #pass # no need to add basewireOffset
                 nedge = offset(curredge, delta, trim=True)
 
             # TODO arc always in counter-clockwise directinon
@@ -484,3 +496,5 @@ def offsetWire(wire, dvec, bind=False, occ=False,
         return w
     else:
         return nedges
+
+## @}

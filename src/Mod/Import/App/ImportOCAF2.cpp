@@ -883,7 +883,7 @@ void ExportOCAF2::setName(TDF_Label label, App::DocumentObject *obj, const char 
 }
 
 // Similar to XCAFDoc_ShapeTool::FindSHUO but return only main SHUO, i.e. SHUO
-// with no upper_usage. It should not be necssary if we strictly export from
+// with no upper_usage. It should not be necessary if we strictly export from
 // bottom up, but let's make sure of it.
 static Standard_Boolean FindSHUO (const TDF_LabelSequence& theLabels,
                                   Handle(XCAFDoc_GraphNode)& theSHUOAttr)
@@ -1129,7 +1129,8 @@ TDF_Label ExportOCAF2::exportObject(App::DocumentObject* parentObj,
     App::DocumentObject *obj;
     auto shape = Part::Feature::getTopoShape(parentObj,sub,false,0,&obj,false,!sub);
     if(!obj || shape.isNull()) {
-        FC_WARN(obj->getFullName() << " has null shape");
+        if (obj)
+            FC_WARN(obj->getFullName() << " has null shape");
         return TDF_Label();
     }
 

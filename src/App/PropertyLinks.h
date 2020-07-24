@@ -25,7 +25,7 @@
 #define APP_PROPERTYLINKS_H
 
 // Std. configurations
-
+#include <boost/signals2.hpp>
 
 #include <vector>
 #include <map>
@@ -1222,7 +1222,7 @@ public:
      */
     void setValue(App::DocumentObject *lValue, const std::vector<std::string> &SubList={});
 
-    std::vector<DocumentObject*> getValues(void);
+    std::vector<DocumentObject*> getValues(void) const;
 
     const std::string getPyReprString() const;
 
@@ -1309,9 +1309,6 @@ public:
 
     virtual PyObject *getPyObject(void) override;
     virtual void setPyObject(PyObject *) override;
-
-    //for consistency with PropertyLinkList
-    const std::vector<App::DocumentObject*> getValues(void) const;
 };
 
 

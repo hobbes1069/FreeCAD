@@ -41,6 +41,11 @@ SET (Draft_geoutils
     draftgeoutils/fillets.py
     draftgeoutils/offsets.py
     draftgeoutils/linear_algebra.py
+    draftgeoutils/cuboids.py
+    draftgeoutils/circles.py
+    draftgeoutils/circles_apollonius.py
+    draftgeoutils/circle_inversion.py
+    draftgeoutils/circles_incomplete.py
 )
 
 SET(Draft_tests
@@ -63,8 +68,10 @@ SET(Draft_tests
 
 SET(Draft_utilities
     draftutils/__init__.py
+    draftutils/groups.py
     draftutils/init_tools.py
     draftutils/init_draft_statusbar.py
+    draftutils/units.py
     draftutils/utils.py
     draftutils/gui_utils.py
     draftutils/todo.py
@@ -104,10 +111,13 @@ SET(Draft_make_functions
     draftmake/make_circulararray.py
     draftmake/make_clone.py
     draftmake/make_copy.py
+    draftmake/make_dimension.py
     draftmake/make_drawingview.py
     draftmake/make_ellipse.py
     draftmake/make_facebinder.py
     draftmake/make_fillet.py
+    draftmake/make_label.py
+    draftmake/make_layer.py
     draftmake/make_line.py
     draftmake/make_orthoarray.py
     draftmake/make_patharray.py
@@ -119,6 +129,7 @@ SET(Draft_make_functions
     draftmake/make_shape2dview.py
     draftmake/make_shapestring.py
     draftmake/make_sketch.py
+    draftmake/make_text.py
     draftmake/make_wire.py
     draftmake/make_wpproxy.py
     draftmake/README.md
@@ -140,6 +151,7 @@ SET(Draft_objects
     draftobjects/fillet.py
     draftobjects/draftlink.py
     draftobjects/label.py
+    draftobjects/layer.py
     draftobjects/dimension.py
     draftobjects/patharray.py
     draftobjects/point.py
@@ -169,6 +181,7 @@ SET(Draft_view_providers
     draftviewproviders/view_fillet.py
     draftviewproviders/view_draftlink.py
     draftviewproviders/view_label.py
+    draftviewproviders/view_layer.py
     draftviewproviders/view_dimension.py
     draftviewproviders/view_point.py
     draftviewproviders/view_rectangle.py
@@ -247,6 +260,7 @@ SET(Draft_GUI_tools
     draftguitools/gui_heal.py
     draftguitools/gui_dimension_ops.py
     draftguitools/gui_lineslope.py
+    draftguitools/gui_layers.py
     ${Creator_tools}
     ${Modifier_tools}
     draftguitools/README.md

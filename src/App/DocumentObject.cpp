@@ -42,7 +42,7 @@
 #include "DocumentObjectExtension.h"
 #include "GeoFeatureGroupExtension.h"
 #include <App/DocumentObjectPy.h>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 FC_LOG_LEVEL_INIT("App",true,true)
 
@@ -699,7 +699,7 @@ void DocumentObject::onChanged(const Property* prop)
         return;
 
     if(!GetApplication().isRestoring() && 
-       prop && !prop->testStatus(Property::PartialTrigger) &&
+       !prop->testStatus(Property::PartialTrigger) &&
        getDocument() && 
        getDocument()->testStatus(Document::PartialDoc))
     {
@@ -934,6 +934,11 @@ void DocumentObject::onDocumentRestored()
         ext->onExtendedDocumentRestored();
     if(Visibility.testStatus(Property::Output))
         Visibility.setStatus(Property::NoModify,true);
+}
+
+void DocumentObject::onUndoRedoFinished()
+{
+
 }
 
 void DocumentObject::onSettingDocument()

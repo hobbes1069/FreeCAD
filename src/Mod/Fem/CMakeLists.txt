@@ -42,15 +42,26 @@ SET(FemCommands_SRCS
 
 SET(FemExamples_SRCS
     femexamples/__init__.py
-    femexamples/boxanalysis.py
-    femexamples/ccx_cantilever_std.py
+    femexamples/boxanalysis_static.py
+    femexamples/boxanalysis_frequency.py
+    femexamples/ccx_cantilever_faceload.py
+    femexamples/ccx_cantilever_nodeload.py
+    femexamples/ccx_cantilever_hexa20faceload.py
+    femexamples/ccx_cantilever_prescribeddisplacement.py
     femexamples/constraint_contact_shell_shell.py
     femexamples/constraint_contact_solid_solid.py
+    femexamples/constraint_section_print.py
+    femexamples/constraint_selfweight_cantilever.py
     femexamples/constraint_tie.py
+    femexamples/examplesgui.py
     femexamples/manager.py
-    femexamples/material_multiple_twoboxes.py
+    femexamples/material_multiple_bendingbeam_fiveboxes.py
+    femexamples/material_multiple_bendingbeam_fivefaces.py
+    femexamples/material_multiple_tensionrod_twoboxes.py
     femexamples/material_nl_platewithhole.py
     femexamples/rc_wall_2d.py
+    femexamples/square_pipe_end_twisted_edgeforces.py
+    femexamples/square_pipe_end_twisted_nodeforces.py
     femexamples/thermomech_bimetall.py
     femexamples/thermomech_flow1d.py
     femexamples/thermomech_spine.py
@@ -65,8 +76,13 @@ SET(FemExampleMeshes_SRCS
     femexamples/meshes/mesh_constraint_tie_tetra10.py
     femexamples/meshes/mesh_contact_box_halfcylinder_tetra10.py
     femexamples/meshes/mesh_contact_tube_tube_tria3.py
-    femexamples/meshes/mesh_rc_wall_2d_tria6.py
+    femexamples/meshes/mesh_multibodybeam_tetra10.py
+    femexamples/meshes/mesh_multibodybeam_tria6.py
     femexamples/meshes/mesh_platewithhole_tetra10.py
+    femexamples/meshes/mesh_rc_wall_2d_tria6.py
+    femexamples/meshes/mesh_section_print_tetra10.py
+    femexamples/meshes/mesh_selfweight_cantilever_tetra10.py
+    femexamples/meshes/mesh_square_pipe_end_twisted_tria6.py
     femexamples/meshes/mesh_thermomech_bimetall_tetra10.py
     femexamples/meshes/mesh_thermomech_flow1d_seg3.py
     femexamples/meshes/mesh_thermomech_spine_tetra10.py
@@ -101,10 +117,12 @@ SET(FemMesh_SRCS
 SET(FemObjects_SRCS
     femobjects/__init__.py
     femobjects/base_fempythonobject.py
+    femobjects/constant_vacuumpermittivity.py
     femobjects/constraint_bodyheatsource.py
     femobjects/constraint_electrostaticpotential.py
     femobjects/constraint_flowvelocity.py
     femobjects/constraint_initialflowvelocity.py
+    femobjects/constraint_sectionprint.py
     femobjects/constraint_selfweight.py
     femobjects/constraint_tie.py
     femobjects/element_fluid1D.py
@@ -164,7 +182,7 @@ SET(FemSolverElmerEquations_SRCS
     femsolver/elmer/equations/elasticity.py
     femsolver/elmer/equations/equation.py
     femsolver/elmer/equations/flow.py
-    femsolver/elmer/equations/fluxsolver.py
+    femsolver/elmer/equations/flux.py
     femsolver/elmer/equations/heat.py
     femsolver/elmer/equations/linear.py
     femsolver/elmer/equations/nonlinear.py
@@ -199,7 +217,9 @@ SET(FemTestsApp_SRCS
     femtest/app/test_object.py
     femtest/app/test_open.py
     femtest/app/test_result.py
-    femtest/app/test_solverframework.py
+    femtest/app/test_solver_calculix.py
+    femtest/app/test_solver_elmer.py
+    femtest/app/test_solver_z88.py
 )
 
 SET(FemTestsFiles_SRCS
@@ -207,43 +227,56 @@ SET(FemTestsFiles_SRCS
 )
 
 SET(FemTestsCcx_SRCS
-    femtest/data/ccx/__init__.py
-    femtest/data/ccx/canti_ccx_faceload_hexa20.inp
-    femtest/data/ccx/constraint_contact_shell_shell.FCStd
-    femtest/data/ccx/constraint_contact_shell_shell.inp
-    femtest/data/ccx/constraint_contact_solid_solid.FCStd
-    femtest/data/ccx/constraint_contact_solid_solid.inp
-    femtest/data/ccx/constraint_tie.inp
-    femtest/data/ccx/cube_frequency.inp
-    femtest/data/ccx/cube_frequency.dat
-    femtest/data/ccx/cube_frequency.frd
-    femtest/data/ccx/cube_frequency_expected_values
-    femtest/data/ccx/cube_frequency.FCStd
-    femtest/data/ccx/cube_static.inp
-    femtest/data/ccx/cube_static.dat
-    femtest/data/ccx/cube_static.frd
-    femtest/data/ccx/cube_static_expected_values
-    femtest/data/ccx/cube_static.FCStd
-    femtest/data/ccx/cube.FCStd
-    femtest/data/ccx/mat_multiple.inp
-    femtest/data/ccx/mat_nonlinear.inp
-    femtest/data/ccx/spine_thermomech.inp
-    femtest/data/ccx/spine_thermomech.dat
-    femtest/data/ccx/spine_thermomech.frd
-    femtest/data/ccx/spine_thermomech_expected_values
-    femtest/data/ccx/spine_thermomech.FCStd
-    femtest/data/ccx/Flow1D_thermomech.inp
-    femtest/data/ccx/Flow1D_thermomech.dat
-    femtest/data/ccx/Flow1D_thermomech.frd
-    femtest/data/ccx/Flow1D_thermomech_expected_values
-    femtest/data/ccx/Flow1D_thermomech_inout_nodes.txt
-    femtest/data/ccx/Flow1D_thermomech.FCStd
-    femtest/data/ccx/thermomech_bimetall.inp
+    femtest/data/calculix/__init__.py
+    femtest/data/calculix/box_frequency.inp
+    femtest/data/calculix/box_frequency.dat
+    femtest/data/calculix/box_frequency.frd
+    femtest/data/calculix/box_frequency_expected_values
+    femtest/data/calculix/box_frequency.FCStd
+    femtest/data/calculix/box_static.inp
+    femtest/data/calculix/box_static.dat
+    femtest/data/calculix/box_static.frd
+    femtest/data/calculix/box_static_expected_values
+    femtest/data/calculix/box_static.FCStd
+    femtest/data/calculix/box.FCStd
+    femtest/data/calculix/ccxcantilever_faceload.inp
+    femtest/data/calculix/ccxcantilever_hexa20.inp
+    femtest/data/calculix/ccxcantilever_nodeload.inp
+    femtest/data/calculix/ccxcantilever_prescribeddisplacement.inp
+    femtest/data/calculix/constraint_contact_shell_shell.FCStd
+    femtest/data/calculix/constraint_contact_shell_shell.inp
+    femtest/data/calculix/constraint_contact_solid_solid.FCStd
+    femtest/data/calculix/constraint_contact_solid_solid.inp
+    femtest/data/calculix/constraint_sectionprint.inp
+    femtest/data/calculix/constraint_selfweight_cantilever.inp
+    femtest/data/calculix/constraint_tie.inp
+    femtest/data/calculix/material_multiple_bendingbeam_fiveboxes.inp
+    femtest/data/calculix/material_multiple_bendingbeam_fivefaces.inp
+    femtest/data/calculix/material_multiple_tensionrod_twoboxes.inp
+    femtest/data/calculix/material_nonlinear.inp
+    femtest/data/calculix/square_pipe_end_twisted_edgeforces.inp
+    femtest/data/calculix/square_pipe_end_twisted_nodeforces.inp
+    femtest/data/calculix/thermomech_bimetall.inp
+    femtest/data/calculix/thermomech_flow1D.inp
+    femtest/data/calculix/thermomech_flow1D.dat
+    femtest/data/calculix/thermomech_flow1D.frd
+    femtest/data/calculix/thermomech_flow1D_expected_values
+    femtest/data/calculix/thermomech_flow1D_inout_nodes.txt
+    femtest/data/calculix/thermomech_flow1D.FCStd
+    femtest/data/calculix/thermomech_spine.inp
+    femtest/data/calculix/thermomech_spine.dat
+    femtest/data/calculix/thermomech_spine.frd
+    femtest/data/calculix/thermomech_spine_expected_values
+    femtest/data/calculix/thermomech_spine.FCStd
 )
 
 SET(FemTestsElmer_SRCS
     femtest/data/elmer/__init__.py
-    femtest/data/elmer/case.sif
+    femtest/data/elmer/box_static_0_mm.sif
+    femtest/data/elmer/ccxcantilever_faceload_0_mm.sif
+    femtest/data/elmer/ccxcantilever_faceload_1_si.sif
+    femtest/data/elmer/ccxcantilever_nodeload_0_mm.sif
+    femtest/data/elmer/ccxcantilever_prescribeddisplacement_0_mm.sif
     femtest/data/elmer/group_mesh.geo
     femtest/data/elmer/ELMERSOLVER_STARTINFO
 )
@@ -262,6 +295,49 @@ SET(FemTestsOpen_SRCS
     femtest/data/open/all_objects_de9b3fb438.FCStd
 )
 
+SET(FemTestsZ88Main_SRCS
+    femtest/data/z88/__init__.py
+)
+
+SET(FemTestsZ88Ccxcantifl_SRCS
+    femtest/data/z88/__init__.py
+    femtest/data/z88/ccxcantilever_faceload/51.txt
+    femtest/data/z88/ccxcantilever_faceload/z88.dyn
+    femtest/data/z88/ccxcantilever_faceload/z88elp.txt
+    femtest/data/z88/ccxcantilever_faceload/z88i1.txt
+    femtest/data/z88/ccxcantilever_faceload/z88i2.txt
+    femtest/data/z88/ccxcantilever_faceload/z88i5.txt
+    femtest/data/z88/ccxcantilever_faceload/z88int.txt
+    femtest/data/z88/ccxcantilever_faceload/z88man.txt
+    femtest/data/z88/ccxcantilever_faceload/z88mat.txt
+)
+
+SET(FemTestsZ88Ccxcantihex_SRCS
+    femtest/data/z88/__init__.py
+    femtest/data/z88/ccxcantilever_hexa20/51.txt
+    femtest/data/z88/ccxcantilever_hexa20/z88.dyn
+    femtest/data/z88/ccxcantilever_hexa20/z88elp.txt
+    femtest/data/z88/ccxcantilever_hexa20/z88i1.txt
+    femtest/data/z88/ccxcantilever_hexa20/z88i2.txt
+    femtest/data/z88/ccxcantilever_hexa20/z88i5.txt
+    femtest/data/z88/ccxcantilever_hexa20/z88int.txt
+    femtest/data/z88/ccxcantilever_hexa20/z88man.txt
+    femtest/data/z88/ccxcantilever_hexa20/z88mat.txt
+)
+
+SET(FemTestsZ88Ccxcantinl_SRCS
+    femtest/data/z88/__init__.py
+    femtest/data/z88/ccxcantilever_nodeload/51.txt
+    femtest/data/z88/ccxcantilever_nodeload/z88.dyn
+    femtest/data/z88/ccxcantilever_nodeload/z88elp.txt
+    femtest/data/z88/ccxcantilever_nodeload/z88i1.txt
+    femtest/data/z88/ccxcantilever_nodeload/z88i2.txt
+    femtest/data/z88/ccxcantilever_nodeload/z88i5.txt
+    femtest/data/z88/ccxcantilever_nodeload/z88int.txt
+    femtest/data/z88/ccxcantilever_nodeload/z88man.txt
+    femtest/data/z88/ccxcantilever_nodeload/z88mat.txt
+)
+
 SET(FemTools_SRCS
     femtools/__init__.py
     femtools/ccxtools.py
@@ -272,7 +348,6 @@ SET(FemTools_SRCS
     femtools/geomtools.py
     femtools/membertools.py
     femtools/migrate_app.py
-    femtools/migrate_gui.py
     femtools/tokrules.py
 )
 
@@ -298,6 +373,10 @@ SET(FemAllScripts
     ${FemTestsElmer_SRCS}
     ${FemTestsMesh_SRCS}
     ${FemTestsOpen_SRCS}
+    ${FemTestsZ88Main_SRCS}
+    ${FemTestsZ88Ccxcantifl_SRCS}
+    ${FemTestsZ88Ccxcantihex_SRCS}
+    ${FemTestsZ88Ccxcantinl_SRCS}
     ${FemTools_SRCS}
 )
 
@@ -331,6 +410,14 @@ INSTALL(FILES ${FemTestsElmer_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/
 INSTALL(FILES ${FemTestsMesh_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femtest/data/mesh)
 INSTALL(FILES ${FemTestsOpen_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femtest/data/open)
 INSTALL(FILES ${FemTools_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femtools)
+INSTALL(FILES ${FemTestsCcx_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femtest/data/calculix)
+INSTALL(FILES ${FemTestsElmer_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femtest/data/elmer)
+INSTALL(FILES ${FemTestsMesh_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femtest/data/mesh)
+INSTALL(FILES ${FemTestsOpen_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femtest/data/open)
+INSTALL(FILES ${FemTestsZ88Main_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femtest/data/z88)
+INSTALL(FILES ${FemTestsZ88Ccxcantifl_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femtest/data/z88/ccxcantilever_faceload)
+INSTALL(FILES ${FemTestsZ88Ccxcantihex_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femtest/data/z88/ccxcantilever_hexa20)
+INSTALL(FILES ${FemTestsZ88Ccxcantinl_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femtest/data/z88/ccxcantilever_nodeload)
 
 
 
@@ -347,12 +434,35 @@ SET(FemGuiObjects_SRCS
     femguiobjects/readme.md
 )
 
+SET(FemGuiTaskPanels_SRCS
+    femtaskpanels/__init__.py
+    femtaskpanels/task_constraint_electrostaticpotential.py
+    femtaskpanels/task_constraint_flowvelocity.py
+    femtaskpanels/task_constraint_initialflowvelocity.py
+    femtaskpanels/task_constraint_sectionprint.py
+    femtaskpanels/task_constraint_tie.py
+    femtaskpanels/task_element_fluid1D.py
+    femtaskpanels/task_element_geometry1D.py
+    femtaskpanels/task_element_geometry2D.py
+    femtaskpanels/task_element_rotation1D.py
+    femtaskpanels/task_material_common.py
+    femtaskpanels/task_material_reinforced.py
+    femtaskpanels/task_mesh_boundarylayer.py
+    femtaskpanels/task_mesh_gmsh.py
+    femtaskpanels/task_mesh_group.py
+    femtaskpanels/task_mesh_region.py
+    femtaskpanels/task_result_mechanical.py
+    femtaskpanels/task_solver_ccxtools.py
+)
+
 SET(FemGuiTests_SRCS
     femtest/gui/__init__.py
     femtest/gui/test_open.py
 )
 
 SET(FemGuiUtils_SRCS
+    femguiutils/__init__.py
+    femguiutils/migrate_gui.py
     femguiutils/selection_widgets.py
 )
 
@@ -360,10 +470,12 @@ SET(FemGuiViewProvider_SRCS
     femviewprovider/__init__.py
     femviewprovider/view_base_femconstraint.py
     femviewprovider/view_base_femobject.py
+    femviewprovider/view_constant_vacuumpermittivity.py
     femviewprovider/view_constraint_bodyheatsource.py
     femviewprovider/view_constraint_electrostaticpotential.py
     femviewprovider/view_constraint_flowvelocity.py
     femviewprovider/view_constraint_initialflowvelocity.py
+    femviewprovider/view_constraint_sectionprint.py
     femviewprovider/view_constraint_selfweight.py
     femviewprovider/view_constraint_tie.py
     femviewprovider/view_element_fluid1D.py
@@ -385,6 +497,7 @@ SET(FemGuiViewProvider_SRCS
 SET(FemAllGuiScripts
     ${FemGuiBaseModules_SRCS}
     ${FemGuiObjects_SRCS}
+    ${FemGuiTaskPanels_SRCS}
     ${FemGuiTests_SRCS}
     ${FemGuiUtils_SRCS}
     ${FemGuiViewProvider_SRCS}
@@ -400,6 +513,7 @@ if(BUILD_GUI)
     # install directories for Python packages (for make install)
     INSTALL(FILES ${FemGuiBaseModules_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/)
     INSTALL(FILES ${FemGuiObjects_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femguiobjects/)
+    INSTALL(FILES ${FemGuiTaskPanels_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femtaskpanels/)
     INSTALL(FILES ${FemGuiTests_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femtest/gui/)
     INSTALL(FILES ${FemGuiUtils_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femguiutils/)
     INSTALL(FILES ${FemGuiViewProvider_SRCS} DESTINATION ${CMAKE_INSTALL_LIBDIR}/Mod/Fem/femviewprovider/)

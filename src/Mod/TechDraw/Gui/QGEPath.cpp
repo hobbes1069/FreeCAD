@@ -27,6 +27,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPainterPathStroker>
 #include <QStyleOptionGraphicsItem>
 #include <QVector2D>
@@ -288,8 +289,8 @@ void QGEPath::clearMarkers()
         return;
     }
     for (auto& m: m_markers) {
-        m->hide();
         if (m != nullptr) {
+            m->hide();
             QGraphicsScene* s = m->scene();
             if (s != nullptr) {
                 s->removeItem(m);           //should this be setParentItem(nullptr) instead??

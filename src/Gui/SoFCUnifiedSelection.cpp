@@ -100,6 +100,10 @@ FC_LOG_LEVEL_INIT("SoFCUnifiedSelection",false,true,true)
 
 using namespace Gui;
 
+namespace Gui {
+std::array<std::pair<double, std::string>,3 > schemaTranslatePoint(double x, double y, double z, double precision);
+}
+
 SoFullPath * Gui::SoFCUnifiedSelection::currenthighlight = NULL;
 
 // *************************************************************************
@@ -125,6 +129,10 @@ SoFCUnifiedSelection::SoFCUnifiedSelection() : pcDocument(0)
     SO_NODE_DEFINE_ENUM_VALUE(HighlightModes, OFF);
     SO_NODE_SET_SF_ENUM_TYPE (highlightMode, HighlightModes);
 
+    // Documentation of SoFullPath:
+    // Since the SoFullPath is derived from SoPath and contains no private data, you can cast SoPath instances to the SoFullPath type.
+    // This will allow you to examine hidden children. Actually, you are not supposed to allocate instances of this class at all.
+    // It is only available as an "extended interface" into the superclass SoPath.
     detailPath = static_cast<SoFullPath*>(new SoPath(20));
     detailPath->ref();
 
@@ -479,16 +487,18 @@ bool SoFCUnifiedSelection::setHighlight(SoFullPath *path, const SoDetail *det,
     {
         const char *docname = vpd->getObject()->getDocument()->getName();
         const char *objname = vpd->getObject()->getNameInDocument();
-
+    
         this->preSelection = 1;
         static char buf[513];
-        snprintf(buf,512,"Preselected: %s.%s.%s (%g, %g, %g)"
-                ,docname,objname,element
-                ,fabs(x)>1e-7?x:0.0
-                ,fabs(y)>1e-7?y:0.0
-                ,fabs(z)>1e-7?z:0.0);
 
-        getMainWindow()->showMessage(QString::fromLatin1(buf));
+        auto pts = schemaTranslatePoint(x, y, z, 1e-7);
+        snprintf(buf,512,"Preselected: %s.%s.%s (%f %s, %f %s, %f %s)"
+                ,docname,objname,element
+                ,pts[0].first,pts[0].second.c_str()
+                ,pts[1].first,pts[1].second.c_str()
+                ,pts[2].first,pts[2].second.c_str());
+
+        getMainWindow()->showMessage(QString::fromUtf8(buf));
 
         int ret = Gui::Selection().setPreselect(docname,objname,element,x,y,z);
         if(ret<0 && currenthighlight)
@@ -1122,7 +1132,7 @@ SoFCSelectionContextBasePtr SoFCSelectionRoot::getNodeContext(
 
     SoFCSelectionRoot *front = stack.front();
 
-    // NOTE: _node is not necssary of type SoFCSelectionRoot, but it is safe
+    // NOTE: _node is not necessary of type SoFCSelectionRoot, but it is safe
     // here since we only use it as searching key, although it is probably not
     // a best practice.
     stack.front() = static_cast<SoFCSelectionRoot*>(node);

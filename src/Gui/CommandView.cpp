@@ -39,7 +39,7 @@
 # include <QPainter>
 # include <QPointer>
 # include <QTextStream>
-# include <boost/bind.hpp>
+# include <boost_bind_bind.hpp>
 #endif
 
 #include "Command.h"
@@ -70,6 +70,7 @@
 #include "SceneInspector.h"
 #include "DemoMode.h"
 #include "TextureMapping.h"
+#include "Tools.h"
 #include "Utilities.h"
 #include "NavigationStyle.h"
 
@@ -93,6 +94,7 @@
 
 using namespace Gui;
 using Gui::Dialog::DlgSettingsImageImp;
+namespace bp = boost::placeholders;
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -585,7 +587,7 @@ StdCmdDrawStyle::StdCmdDrawStyle()
     sPixmap       = "DrawStyleAsIs";
     eType         = Alter3DView;
 
-    this->getGuiApplication()->signalActivateView.connect(boost::bind(&StdCmdDrawStyle::updateIcon, this, _1));
+    this->getGuiApplication()->signalActivateView.connect(boost::bind(&StdCmdDrawStyle::updateIcon, this, bp::_1));
 }
 
 Gui::Action * StdCmdDrawStyle::createAction(void)
@@ -1111,6 +1113,34 @@ bool StdCmdSetAppearance::isActive(void)
     return (Gui::Control().activeDialog() == nullptr) &&
            (Gui::Selection().size() != 0);
 #endif
+}
+
+//===========================================================================
+// Std_ViewHome
+//===========================================================================
+DEF_3DV_CMD(StdCmdViewHome)
+
+StdCmdViewHome::StdCmdViewHome()
+  : Command("Std_ViewHome")
+{
+    sGroup        = QT_TR_NOOP("Standard-View");
+    sMenuText     = QT_TR_NOOP("Home");
+    sToolTipText  = QT_TR_NOOP("Set to default home view");
+    sWhatsThis    = "Std_ViewHome";
+    sStatusTip    = QT_TR_NOOP("Set to default home view");
+    //sPixmap       = "view-home";
+    sAccel        = "Home";
+    eType         = Alter3DView;
+}
+
+void StdCmdViewHome::activated(int iMsg)
+{
+    Q_UNUSED(iMsg);
+
+    auto hGrp = App::GetApplication().GetParameterGroupByPath("User parameter:BaseApp/Preferences/View");
+    std::string default_view = hGrp->GetASCII("NewDocumentCameraOrientation","Top");
+    doCommand(Command::Gui,"Gui.activeDocument().activeView().viewDefaultOrientation('%s',0)",default_view.c_str());
+    doCommand(Command::Gui,"Gui.SendMsgToActiveView(\"ViewFit\")");
 }
 
 //===========================================================================
@@ -1783,7 +1813,7 @@ void StdViewScreenShot::activated(int iMsg)
         opt->setMethod(method);
 
         fd.setOptionsWidget(FileOptionsDialog::ExtensionRight, opt);
-        fd.setConfirmOverwrite(true);
+        fd.setOption(QFileDialog::DontConfirmOverwrite, false);
         opt->onSelectedFilter(fd.selectedNameFilter());
         QObject::connect(&fd, SIGNAL(filterSelected(const QString&)),
                          opt, SLOT(onSelectedFilter(const QString&)));
@@ -1861,14 +1891,15 @@ void StdViewScreenShot::activated(int iMsg)
                     QFont font = painter.font();
                     font.setPointSize(20);
 
-                    int n = QFontMetrics(font).width(name);
+                    QFontMetrics fm(font);
+                    int n = QtTools::horizontalAdvance(fm, name);
                     int h = pixmap.height();
 
                     painter.setFont(font);
                     painter.drawText(8+appicon.width(), h-24, name);
 
                     font.setPointSize(12);
-                    int u = QFontMetrics(font).width(url);
+                    int u = QtTools::horizontalAdvance(fm, url);
                     painter.setFont(font);
                     painter.drawText(8+appicon.width()+n-u, h-9, url);
 
@@ -3471,6 +3502,7 @@ void CreateViewStdCommands(void)
 
     // views
     rcCmdMgr.addCommand(new StdCmdViewBottom());
+    rcCmdMgr.addCommand(new StdCmdViewHome());
     rcCmdMgr.addCommand(new StdCmdViewFront());
     rcCmdMgr.addCommand(new StdCmdViewLeft());
     rcCmdMgr.addCommand(new StdCmdViewRear());

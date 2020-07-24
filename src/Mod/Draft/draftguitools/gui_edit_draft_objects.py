@@ -20,7 +20,7 @@
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-"""Provide the support functions to Draft_Edit for Draft objects.
+"""Provides support functions to edit Draft objects.
 
 All functions in this module work with Object coordinate space.
 No conversion to global coordinate system is needed.
@@ -34,15 +34,16 @@ TODO: Abstract the code that handles the preview and move the object specific
     code to this module from main Draft_Edit module
 """
 ## @package gui_edit_draft_objects
-# \ingroup DRAFT
-# \brief Provide the support functions to Draft_Edit for Draft objects.
+# \ingroup draftguitools
+# \brief Provides support functions to edit Draft objects.
 
 __title__ = "FreeCAD Draft Edit Tool"
 __author__ = ("Yorik van Havre, Werner Mayer, Martin Burbaum, Ken Cline, "
               "Dmitry Chigrin, Carlo Pavan")
 __url__ = "https://www.freecadweb.org"
 
-
+## \addtogroup draftguitools
+# @{
 import math
 import FreeCAD as App
 import DraftVecUtils
@@ -383,7 +384,7 @@ def recomputePointsBezier(obj, pts, idx, v,
             if idx >= 1: #move left pole
                 knotidx = idx if idx < len(pts) else 0
                 pts[idx-1] = pts[idx-1] + v - pts[knotidx]
-                #if moveTrackers: # trackers are reseted after editing
+                #if moveTrackers: # trackers are reset after editing
                 #    self.trackers[obj.Name][idx-1].set(pts[idx-1])
             if idx < len(pts)-1: #move right pole
                 pts[idx+1] = pts[idx+1] + v - pts[idx]
@@ -511,3 +512,4 @@ def smoothBezPoint(obj, point, style='Symmetric'):
     obj.Points = pts
     obj.Continuity = newcont
 
+## @}

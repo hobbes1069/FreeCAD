@@ -122,7 +122,7 @@
 
 #include <boost/tokenizer.hpp>
 #include <boost/token_functions.hpp>
-#include <boost/bind.hpp>
+#include <boost_bind_bind.hpp>
 #include <boost/version.hpp>
 #include <QDir>
 #include <QFileInfo>
@@ -131,6 +131,7 @@ using namespace App;
 using namespace std;
 using namespace boost;
 using namespace boost::program_options;
+namespace bp = boost::placeholders;
 
 
 // scriptings (scripts are built-in but can be overridden by command line option)
@@ -380,12 +381,19 @@ void Application::renameDocument(const char *OldName, const char *NewName)
 #endif
 }
 
-Document* Application::newDocument(const char * Name, const char * UserName, bool createView)
+Document* Application::newDocument(const char * Name, const char * UserName, bool createView, bool tempDoc)
 {
     // get a valid name anyway!
     if (!Name || Name[0] == '\0')
         Name = "Unnamed";
-    string name = getUniqueDocumentName(Name);
+    string name = getUniqueDocumentName(Name, tempDoc);
+
+    // return the temporary document if it exists
+    if (tempDoc) {
+        auto it = DocMap.find(name);
+        if (it != DocMap.end() && it->second->testStatus(Document::TempDoc))
+            return it->second;
+    }
 
     std::string userName;
     if (UserName && UserName[0] != '\0') {
@@ -406,33 +414,37 @@ Document* Application::newDocument(const char * Name, const char * UserName, boo
 
     // create the FreeCAD document
     std::unique_ptr<Document> newDoc(new Document(name.c_str()));
+    if (tempDoc)
+        newDoc->setStatus(Document::TempDoc, true);
+
+    auto oldActiveDoc = _pActiveDoc;
+    auto doc = newDoc.get();
 
     // add the document to the internal list
     DocMap[name] = newDoc.release(); // now owned by the Application
     _pActiveDoc = DocMap[name];
 
-
     // connect the signals to the application for the new document
-    _pActiveDoc->signalBeforeChange.connect(boost::bind(&App::Application::slotBeforeChangeDocument, this, _1, _2));
-    _pActiveDoc->signalChanged.connect(boost::bind(&App::Application::slotChangedDocument, this, _1, _2));
-    _pActiveDoc->signalNewObject.connect(boost::bind(&App::Application::slotNewObject, this, _1));
-    _pActiveDoc->signalDeletedObject.connect(boost::bind(&App::Application::slotDeletedObject, this, _1));
-    _pActiveDoc->signalBeforeChangeObject.connect(boost::bind(&App::Application::slotBeforeChangeObject, this, _1, _2));
-    _pActiveDoc->signalChangedObject.connect(boost::bind(&App::Application::slotChangedObject, this, _1, _2));
-    _pActiveDoc->signalRelabelObject.connect(boost::bind(&App::Application::slotRelabelObject, this, _1));
-    _pActiveDoc->signalActivatedObject.connect(boost::bind(&App::Application::slotActivatedObject, this, _1));
-    _pActiveDoc->signalUndo.connect(boost::bind(&App::Application::slotUndoDocument, this, _1));
-    _pActiveDoc->signalRedo.connect(boost::bind(&App::Application::slotRedoDocument, this, _1));
-    _pActiveDoc->signalRecomputedObject.connect(boost::bind(&App::Application::slotRecomputedObject, this, _1));
-    _pActiveDoc->signalRecomputed.connect(boost::bind(&App::Application::slotRecomputed, this, _1));
-    _pActiveDoc->signalBeforeRecompute.connect(boost::bind(&App::Application::slotBeforeRecompute, this, _1));
-    _pActiveDoc->signalOpenTransaction.connect(boost::bind(&App::Application::slotOpenTransaction, this, _1, _2));
-    _pActiveDoc->signalCommitTransaction.connect(boost::bind(&App::Application::slotCommitTransaction, this, _1));
-    _pActiveDoc->signalAbortTransaction.connect(boost::bind(&App::Application::slotAbortTransaction, this, _1));
-    _pActiveDoc->signalStartSave.connect(boost::bind(&App::Application::slotStartSaveDocument, this, _1, _2));
-    _pActiveDoc->signalFinishSave.connect(boost::bind(&App::Application::slotFinishSaveDocument, this, _1, _2));
+    _pActiveDoc->signalBeforeChange.connect(boost::bind(&App::Application::slotBeforeChangeDocument, this, bp::_1, bp::_2));
+    _pActiveDoc->signalChanged.connect(boost::bind(&App::Application::slotChangedDocument, this, bp::_1, bp::_2));
+    _pActiveDoc->signalNewObject.connect(boost::bind(&App::Application::slotNewObject, this, bp::_1));
+    _pActiveDoc->signalDeletedObject.connect(boost::bind(&App::Application::slotDeletedObject, this, bp::_1));
+    _pActiveDoc->signalBeforeChangeObject.connect(boost::bind(&App::Application::slotBeforeChangeObject, this, bp::_1, bp::_2));
+    _pActiveDoc->signalChangedObject.connect(boost::bind(&App::Application::slotChangedObject, this, bp::_1, bp::_2));
+    _pActiveDoc->signalRelabelObject.connect(boost::bind(&App::Application::slotRelabelObject, this, bp::_1));
+    _pActiveDoc->signalActivatedObject.connect(boost::bind(&App::Application::slotActivatedObject, this, bp::_1));
+    _pActiveDoc->signalUndo.connect(boost::bind(&App::Application::slotUndoDocument, this, bp::_1));
+    _pActiveDoc->signalRedo.connect(boost::bind(&App::Application::slotRedoDocument, this, bp::_1));
+    _pActiveDoc->signalRecomputedObject.connect(boost::bind(&App::Application::slotRecomputedObject, this, bp::_1));
+    _pActiveDoc->signalRecomputed.connect(boost::bind(&App::Application::slotRecomputed, this, bp::_1));
+    _pActiveDoc->signalBeforeRecompute.connect(boost::bind(&App::Application::slotBeforeRecompute, this, bp::_1));
+    _pActiveDoc->signalOpenTransaction.connect(boost::bind(&App::Application::slotOpenTransaction, this, bp::_1, bp::_2));
+    _pActiveDoc->signalCommitTransaction.connect(boost::bind(&App::Application::slotCommitTransaction, this, bp::_1));
+    _pActiveDoc->signalAbortTransaction.connect(boost::bind(&App::Application::slotAbortTransaction, this, bp::_1));
+    _pActiveDoc->signalStartSave.connect(boost::bind(&App::Application::slotStartSaveDocument, this, bp::_1, bp::_2));
+    _pActiveDoc->signalFinishSave.connect(boost::bind(&App::Application::slotFinishSaveDocument, this, bp::_1, bp::_2));
     _pActiveDoc->signalChangePropertyEditor.connect(
-            boost::bind(&App::Application::slotChangePropertyEditor, this, _1, _2));
+            boost::bind(&App::Application::slotChangePropertyEditor, this, bp::_1, bp::_2));
 
     // make sure that the active document is set in case no GUI is up
     {
@@ -441,12 +453,16 @@ Document* Application::newDocument(const char * Name, const char * UserName, boo
         Py::Module("FreeCAD").setAttr(std::string("ActiveDocument"),active);
     }
 
-    signalNewDocument(*_pActiveDoc,createView);
+    signalNewDocument(*_pActiveDoc, createView);
 
     // set the UserName after notifying all observers
     _pActiveDoc->Label.setValue(userName);
 
-    return _pActiveDoc;
+    // set the old document active again if the new is temporary
+    if (tempDoc && oldActiveDoc)
+        setActiveDocument(oldActiveDoc);
+
+    return doc;
 }
 
 bool Application::closeDocument(const char* name)
@@ -512,7 +528,7 @@ std::vector<App::Document*> Application::getDocuments() const
     return docs;
 }
 
-std::string Application::getUniqueDocumentName(const char *Name) const
+std::string Application::getUniqueDocumentName(const char *Name, bool tempDoc) const
 {
     if (!Name || *Name == '\0')
         return std::string();
@@ -522,7 +538,7 @@ std::string Application::getUniqueDocumentName(const char *Name) const
     std::map<string,Document*>::const_iterator pos;
     pos = DocMap.find(CleanName);
 
-    if (pos == DocMap.end()) {
+    if (pos == DocMap.end() || (tempDoc && pos->second->testStatus(Document::TempDoc))) {
         // if not, name is OK
         return CleanName;
     }
@@ -530,7 +546,8 @@ std::string Application::getUniqueDocumentName(const char *Name) const
         std::vector<std::string> names;
         names.reserve(DocMap.size());
         for (pos = DocMap.begin();pos != DocMap.end();++pos) {
-            names.push_back(pos->first);
+            if (!tempDoc || !pos->second->testStatus(Document::TempDoc))
+                names.push_back(pos->first);
         }
         return Base::Tools::getUniqueName(CleanName, names);
     }
@@ -582,7 +599,13 @@ public:
     ~DocOpenGuard() {
         if(flag) {
             flag = false;
-            signal();
+            try {
+                signal();
+            }
+            catch (const boost::exception&) {
+                // reported by code analyzers
+                Base::Console().Warning("~DocOpenGuard: Unexpected boost exception\n");
+            }
         }
     }
 };
@@ -909,7 +932,13 @@ Application::TransactionSignaller::TransactionSignaller(bool abort, bool signal)
 Application::TransactionSignaller::~TransactionSignaller() {
     if(--_TransSignalCount == 0 && _TransSignalled) {
         _TransSignalled = false;
-        GetApplication().signalCloseTransaction(abort);
+        try {
+            GetApplication().signalCloseTransaction(abort);
+        }
+        catch (const boost::exception&) {
+            // reported by code analyzers
+            Base::Console().Warning("~TransactionSignaller: Unexpected boost exception\n");
+        }
     }
 }
 
@@ -1700,6 +1729,7 @@ void Application::initTypes(void)
     App ::PropertyAcceleration      ::init();
     App ::PropertyForce             ::init();
     App ::PropertyPressure          ::init();
+    App ::PropertyVacuumPermittivity::init();
     App ::PropertyInteger           ::init();
     App ::PropertyIntegerConstraint ::init();
     App ::PropertyPercent           ::init();
@@ -1888,7 +1918,7 @@ void Application::initConfig(int argc, char ** argv)
     Branding brand;
     QString binDir = QString::fromUtf8((mConfig["AppHomePath"] + "bin").c_str());
     QFileInfo fi(binDir, QString::fromLatin1("branding.xml"));
-    if (brand.readFile(fi.absoluteFilePath())) {
+    if (fi.exists() && brand.readFile(fi.absoluteFilePath())) {
         Branding::XmlConfig cfg = brand.getUserDefines();
         for (Branding::XmlConfig::iterator it = cfg.begin(); it != cfg.end(); ++it) {
             App::Application::Config()[it.key()] = it.value();

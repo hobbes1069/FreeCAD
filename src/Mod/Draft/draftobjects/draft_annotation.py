@@ -1,5 +1,6 @@
 # ***************************************************************************
-# *   (c) 2020 Carlo Pavan                                                  *
+# *   Copyright (c) 2020 Carlo Pavan <carlopav@gmail.com>                   *
+# *   Copyright (c) 2020 Eliud Cabrera Castillo <e.cabrera-castillo@tum.de> *
 # *                                                                         *
 # *   This file is part of the FreeCAD CAx development system.              *
 # *                                                                         *
@@ -20,12 +21,22 @@
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-"""This module provides the object code for Draft Annotation.
-"""
-## @package annotation
-# \ingroup DRAFT
-# \brief This module provides the object code for Draft Annotation.
+"""Provides the object code for all annotation type objects.
 
+This is used by many objects that show dimensions and text created on screen
+through Coin (pivy).
+- DimensionBase
+- LinearDimension
+- AngularDimension
+- Label
+- Text
+"""
+## @package draft_annotation
+# \ingroup draftobjects
+# \brief Provides the object code for all annotation type objects.
+
+## \addtogroup draftobjects
+# @{
 from PySide.QtCore import QT_TRANSLATE_NOOP
 
 from draftutils.messages import _wrn
@@ -44,43 +55,104 @@ class DraftAnnotation(object):
     Text
     """
 
-    def __init__(self, obj, tp="Annotation"):
-        self.Type = tp
+    def __init__(self, obj, typ="Annotation"):
+        self.Type = typ
+        obj.Proxy = self
 
     def onDocumentRestored(self, obj):
-        """Run when the document that is using this class is restored.
+        """Execute code when the document is restored.
 
         Check if new properties are present after the object is restored
         in order to migrate older objects.
         """
         if hasattr(obj, "ViewObject") and obj.ViewObject:
-            if not hasattr(obj.ViewObject, 'ScaleMultiplier'):
-                # annotation properties
-                vobj = obj.ViewObject
-                _tip = "Dimension size overall multiplier"
-                vobj.addProperty("App::PropertyFloat",
-                                 "ScaleMultiplier",
-                                 "Annotation",
-                                 QT_TRANSLATE_NOOP("App::Property", _tip))
-                vobj.ScaleMultiplier = 1.00
+            vobj = obj.ViewObject
+            self.add_missing_properties_0v19(obj, vobj)
 
-                _info = "added view property 'ScaleMultiplier'"
-                _wrn("v0.19, " + obj.Label + ", " + _tr(_info))
+    def add_missing_properties_0v19(self, obj, vobj):
+        """Provide missing annotation properties, if they don't exist."""
+        vproperties = vobj.PropertiesList
+
+        if 'ScaleMultiplier' not in vproperties:
+            _tip = QT_TRANSLATE_NOOP("App::Property",
+                                     "General scaling factor that affects "
+                                     "the annotation consistently\n"
+                                     "because it scales the text, "
+                                     "and the line decorations, if any,\n"
+                                     "in the same proportion.")
+            vobj.addProperty("App::PropertyFloat",
+                             "ScaleMultiplier",
+                             "Annotation",
+                             _tip)
+            vobj.ScaleMultiplier = 1.00
+
+            _info = "added view property 'ScaleMultiplier'"
+            _wrn("v0.19, " + obj.Label + ", " + _tr(_info))
+
+        if 'AnnotationStyle' not in vproperties:
+            _tip = QT_TRANSLATE_NOOP("App::Property",
+                                     "Annotation style to apply "
+                                     "to this object.\n"
+                                     "When using a saved style "
+                                     "some of the view properties "
+                                     "will become read-only;\n"
+                                     "they will only be editable by changing "
+                                     "the style through "
+                                     "the 'Annotation style editor' tool.")
+            vobj.addProperty("App::PropertyEnumeration",
+                             "AnnotationStyle",
+                             "Annotation",
+                             _tip)
+            styles = []
+            for key in obj.Document.Meta.keys():
+                if key.startswith("Draft_Style_"):
+                    styles.append(key[12:])
+
+            vobj.AnnotationStyle = [""] + styles
+
+            _info = "added view property 'AnnotationStyle'"
+            _wrn("v0.19, " + obj.Label + ", " + _tr(_info))
 
     def __getstate__(self):
+        """Return a tuple of objects to save or None.
+
+        Save the Type.
+        """
         return self.Type
 
     def __setstate__(self, state):
+        """Set the internal properties from the restored state.
+
+        Restore the Type of the object.
+        """
         if state:
             if isinstance(state, dict) and ("Type" in state):
+                # During the migration of the classes
+                # the 'DraftText' type was changed to 'Text' type
+                if state["Type"] == "DraftText":
+                    state["Type"] = "Text"
+                    _info = "migrate 'DraftText' type to 'Text'"
+                    _wrn("v0.19, " + _tr(_info))
                 self.Type = state["Type"]
             else:
+                if state == "DraftText":
+                    state = "Text"
+                    _info = "migrate 'DraftText' type to 'Text'"
+                    _wrn("v0.19, " + _tr(_info))
                 self.Type = state
 
     def execute(self, obj):
-        """Do something when recompute object."""
+        """Execute when the object is created or recomputed.
+
+        Does nothing.
+        """
         return
 
     def onChanged(self, obj, prop):
-        """Do something when a property has changed."""
+        """Execute when a property is changed.
+
+        Does nothing.
+        """
         return
+
+## @}

@@ -23,31 +23,58 @@
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-"""Provides utility functions for the Draft Workbench.
+"""Provides general utility functions used throughout the workbench.
 
 This module contains auxiliary functions which can be used
 in other modules of the workbench, and which don't require
 the graphical user interface (GUI).
 """
 ## @package utils
-# \ingroup DRAFT
-# \brief This module provides utility functions for the Draft Workbench
+# \ingroup draftutils
+# \brief Provides general utility functions used throughout the workbench.
 
+## \addtogroup draftutils
+# @{
 import os
-from PySide import QtCore
+import PySide.QtCore as QtCore
 
-import FreeCAD
-import Draft_rc
-from draftutils.messages import _msg, _log
+import FreeCAD as App
+
+from draftutils.messages import _msg, _wrn, _err, _log
 from draftutils.translate import _tr
 
-App = FreeCAD
+# TODO: move the functions that require the graphical interface
+# This module should not import any graphical commands; those should be
+# in gui_utils
+if App.GuiUp:
+    import FreeCADGui as Gui
+    import Draft_rc
 
-# The module is used to prevent complaints from code checkers (flake8)
-True if Draft_rc else False
+    # The module is used to prevent complaints from code checkers (flake8)
+    True if Draft_rc else False
+
+param = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft")
 
 ARROW_TYPES = ["Dot", "Circle", "Arrow", "Tick", "Tick-2"]
 arrowtypes = ARROW_TYPES
+
+ANNOTATION_STYLE = {
+    "FontName": ("font", param.GetString("textfont", "Sans")),
+    "FontSize": ("str", str(param.GetFloat("textheight", 100))),
+    "LineSpacing": ("float", 1),
+    "ScaleMultiplier": ("float", 1),
+    "ShowUnit": ("bool", False),
+    "UnitOverride": ("str", ""),
+    "Decimals": ("int", 2),
+    "ShowLines": ("bool", True),
+    "LineWidth": ("int", param.GetInt("linewidth", 1)),
+    "LineColor": ("color", param.GetInt("color", 255)),
+    "ArrowType": ("index", param.GetInt("dimsymbol", 0)),
+    "ArrowSize": ("str", str(param.GetFloat("arrowsize", 20))),
+    "DimensionOvershoot": ("str", str(param.GetFloat("dimovershoot", 20))),
+    "ExtensionLines": ("str", str(param.GetFloat("extlines", 300))),
+    "ExtensionOvershoot": ("str", str(param.GetFloat("extovershoot", 20))),
+}
 
 
 def string_encode_coin(ustr):
@@ -113,9 +140,8 @@ def type_check(args_and_types, name="?"):
     """
     for v, t in args_and_types:
         if not isinstance(v, t):
-            w = "typecheck[" + str(name) + "]: "
-            w += str(v) + " is not " + str(t) + "\n"
-            FreeCAD.Console.PrintWarning(w)
+            w = "typecheck[{}]: '{}' is not {}".format(name, v, t)
+            _wrn(w)
             raise TypeError("Draft." + str(name))
 
 
@@ -158,7 +184,7 @@ def get_param_type(param):
                    "hideSnapBar", "alwaysShowGrid", "renderPolylineWidth",
                    "showPlaneTracker", "UsePartPrimitives",
                    "DiscretizeEllipses", "showUnit",
-                   "Draft_array_fuse", "Draft_array_Link","gridBorder"):
+                   "Draft_array_fuse", "Draft_array_Link", "gridBorder"):
         return "bool"
     elif param in ("color", "constructioncolor",
                    "snapcolor", "gridColor"):
@@ -204,8 +230,8 @@ def get_param(param, default=None):
     draft_params = "User parameter:BaseApp/Preferences/Mod/Draft"
     view_params = "User parameter:BaseApp/Preferences/View"
 
-    p = FreeCAD.ParamGet(draft_params)
-    v = FreeCAD.ParamGet(view_params)
+    p = App.ParamGet(draft_params)
+    v = App.ParamGet(view_params)
     t = getParamType(param)
     # print("getting param ",param, " of type ",t, " default: ",str(default))
     if t == "int":
@@ -267,8 +293,8 @@ def set_param(param, value):
     draft_params = "User parameter:BaseApp/Preferences/Mod/Draft"
     view_params = "User parameter:BaseApp/Preferences/View"
 
-    p = FreeCAD.ParamGet(draft_params)
-    v = FreeCAD.ParamGet(view_params)
+    p = App.ParamGet(draft_params)
+    v = App.ParamGet(view_params)
     t = getParamType(param)
 
     if t == "int":
@@ -525,24 +551,39 @@ isClone = is_clone
 
 
 def get_clone_base(obj, strict=False):
-    """get_clone_base(obj, [strict])
-    
-    Returns the object cloned by this object, if any, or this object if 
-    it is no clone. 
+    """Return the object cloned by this object, if any.
 
     Parameters
     ----------
-    obj : 
-        TODO: describe
+    obj: App::DocumentObject
+        Any type of object.
 
-    strict : bool (default = False)
-        If strict is True, if this object is not a clone, 
-        this function returns False
+    strict: bool, optional
+        It defaults to `False`.
+        If it is `True`, and this object is not a clone,
+        this function will return `False`.
+
+    Returns
+    -------
+    App::DocumentObject
+        It `obj` is a `Draft Clone`, it will return the first object
+        that is in its `Objects` property.
+
+        If `obj` has a `CloneOf` property, it will search iteratively
+        inside the object pointed to by this property.
+
+    obj
+        If `obj` is not a `Draft Clone`, nor it has a `CloneOf` property,
+        it will return the same `obj`, as long as `strict` is `False`.
+
+    False
+        It will return `False` if `obj` is not a clone,
+        and `strict` is `True`.
     """
-    if hasattr(obj,"CloneOf"):
+    if hasattr(obj, "CloneOf"):
         if obj.CloneOf:
             return get_clone_base(obj.CloneOf)
-    if get_type(obj) == "Clone":
+    if get_type(obj) == "Clone" and obj.Objects:
         return obj.Objects[0]
     if strict:
         return False
@@ -550,52 +591,6 @@ def get_clone_base(obj, strict=False):
 
 
 getCloneBase = get_clone_base
-
-
-def get_group_names():
-    """Return a list of names of existing groups in the document.
-
-    Returns
-    -------
-    list of str
-        A list of names of objects that are "groups".
-        These are objects derived from `'App::DocumentObjectGroup'`
-        or which are of types `'Floor'`, `'Building'`, or `'Site'`
-        (from the Arch Workbench).
-
-        Otherwise, return an empty list.
-    """
-    glist = []
-    doc = FreeCAD.ActiveDocument
-    for obj in doc.Objects:
-        if (obj.isDerivedFrom("App::DocumentObjectGroup")
-                or getType(obj) in ("Floor", "Building", "Site")):
-            glist.append(obj.Name)
-    return glist
-
-
-getGroupNames = get_group_names
-
-
-def ungroup(obj):
-    """Remove the object from any group to which it belongs.
-
-    A "group" is any object returned by `get_group_names`.
-
-    Parameters
-    ----------
-    obj : App::DocumentObject
-        Any type of scripted object.
-    """
-    for name in getGroupNames():
-        group = FreeCAD.ActiveDocument.getObject(name)
-        if obj in group.Group:
-            # The list of objects cannot be modified directly,
-            # so a new list is created, this new list is modified,
-            # and then it is assigned over the older list.
-            objects = group.Group
-            objects.remove(obj)
-            group.Group = objects
 
 
 def shapify(obj):
@@ -647,144 +642,11 @@ def shapify(obj):
     else:
         name = getRealName(obj.Name)
 
-    FreeCAD.ActiveDocument.removeObject(obj.Name)
-    newobj = FreeCAD.ActiveDocument.addObject("Part::Feature", name)
+    App.ActiveDocument.removeObject(obj.Name)
+    newobj = App.ActiveDocument.addObject("Part::Feature", name)
     newobj.Shape = shape
 
     return newobj
-
-
-def get_windows(obj):
-    """Return the windows and rebars inside a host.
-
-    Parameters
-    ----------
-    obj : App::DocumentObject
-        A scripted object of type `'Wall'` or `'Structure'`
-        (Arch Workbench).
-        This will be searched for objects of type `'Window'` and `'Rebar'`,
-        and clones of them, and the found elements will be added
-        to the output list.
-
-        The function will search recursively all elements under `obj.OutList`,
-        in case the windows and rebars are nested under other walls
-        and structures.
-
-    Returns
-    -------
-    list
-        A list of all found windows and rebars in `obj`.
-        If `obj` is itself a `'Window'` or a `'Rebar'`, or a clone of them,
-        it will return the same `obj` element.
-    """
-    out = []
-    if getType(obj) in ("Wall", "Structure"):
-        for o in obj.OutList:
-            out.extend(get_windows(o))
-        for i in obj.InList:
-            if getType(i) in ("Window") or isClone(obj, "Window"):
-                if hasattr(i, "Hosts"):
-                    if obj in i.Hosts:
-                        out.append(i)
-            elif getType(i) in ("Rebar") or isClone(obj, "Rebar"):
-                if hasattr(i, "Host"):
-                    if obj == i.Host:
-                        out.append(i)
-    elif (getType(obj) in ("Window", "Rebar")
-          or isClone(obj, ["Window", "Rebar"])):
-        out.append(obj)
-    return out
-
-
-getWindows = get_windows
-
-
-def get_group_contents(objectslist,
-                       walls=False, addgroups=False,
-                       spaces=False, noarchchild=False):
-    """Return a list of objects from expanding the input groups.
-
-    The function accepts any type of object, although it is most useful
-    with "groups", as it is meant to unpack the objects inside these groups.
-
-    Parameters
-    ----------
-    objectslist : list
-        If any object in the list is a group, its contents (`obj.Group`)
-        are extracted and added to the output list.
-
-        The "groups" are objects derived from `'App::DocumentObjectGroup'`,
-        but they can also be `'App::Part'`, or `'Building'`, `'BuildingPart'`,
-        `'Space'`, and `'Site'` from the Arch Workbench.
-
-        Single items that aren't groups are added to the output list
-        as is.
-
-    walls : bool, optional
-        It defaults to `False`.
-        If it is `True`, Wall and Structure objects (Arch Workbench)
-        are treated as groups; they are scanned for Window, Door,
-        and Rebar objects, and these are added to the output list.
-
-    addgroups : bool, optional
-        It defaults to `False`.
-        If it is `True`, the group itself is kept as part of the output list.
-
-    spaces : bool, optional
-        It defaults to `False`.
-        If it is `True`, Arch Spaces are treated as groups,
-        and are added to the output list.
-
-    noarchchild : bool, optional
-        It defaults to `False`.
-        If it is `True`, the objects inside Building and BuildingParts
-        (Arch Workbench) aren't added to the output list.
-
-    Returns
-    -------
-    list
-        The list of objects from each group present in `objectslist`,
-        plus any other individual object given in `objectslist`.
-    """
-    newlist = []
-    if not isinstance(objectslist, list):
-        objectslist = [objectslist]
-    for obj in objectslist:
-        if obj:
-            if (obj.isDerivedFrom("App::DocumentObjectGroup")
-                    or (getType(obj) in ("Building", "BuildingPart",
-                                         "Space", "Site")
-                        and hasattr(obj, "Group"))):
-                if getType(obj) == "Site":
-                    if obj.Shape:
-                        newlist.append(obj)
-                if obj.isDerivedFrom("Drawing::FeaturePage"):
-                    # skip if the group is a page
-                    newlist.append(obj)
-                else:
-                    if addgroups or (spaces and getType(obj) == "Space"):
-                        newlist.append(obj)
-                    if (noarchchild
-                            and getType(obj) in ("Building", "BuildingPart")):
-                        pass
-                    else:
-                        newlist.extend(getGroupContents(obj.Group,
-                                                        walls, addgroups))
-            else:
-                # print("adding ", obj.Name)
-                newlist.append(obj)
-                if walls:
-                    newlist.extend(getWindows(obj))
-
-    # Clean possible duplicates
-    cleanlist = []
-    for obj in newlist:
-        if obj not in cleanlist:
-            cleanlist.append(obj)
-    return cleanlist
-
-
-getGroupContents = get_group_contents
 
 
 def print_shape(shape):
@@ -869,11 +731,11 @@ compareObjects = compare_objects
 def load_svg_patterns():
     """Load the default Draft SVG patterns and user defined patterns.
 
-    The SVG patterns are added as a dictionary to the `FreeCAD.svgpatterns`
+    The SVG patterns are added as a dictionary to the `App.svgpatterns`
     attribute.
     """
     import importSVG
-    FreeCAD.svgpatterns = {}
+    App.svgpatterns = {}
 
     # Getting default patterns in the resource file
     patfiles = QtCore.QDir(":/patterns").entryList()
@@ -885,7 +747,7 @@ def load_svg_patterns():
         if p:
             for k in p:
                 p[k] = [p[k], file]
-            FreeCAD.svgpatterns.update(p)
+            App.svgpatterns.update(p)
 
     # Get patterns in a user defined file
     altpat = getParam("patternFile", "")
@@ -897,7 +759,7 @@ def load_svg_patterns():
                 if p:
                     for k in p:
                         p[k] = [p[k], file]
-                    FreeCAD.svgpatterns.update(p)
+                    App.svgpatterns.update(p)
 
 
 loadSvgPatterns = load_svg_patterns
@@ -909,16 +771,16 @@ def svg_patterns():
     Returns
     -------
     dict
-        Returns `FreeCAD.svgpatterns` if it exists.
+        Returns `App.svgpatterns` if it exists.
         Otherwise it calls `load_svg_patterns` to create it
         before returning it.
     """
-    if hasattr(FreeCAD, "svgpatterns"):
-        return FreeCAD.svgpatterns
+    if hasattr(App, "svgpatterns"):
+        return App.svgpatterns
     else:
         loadSvgPatterns()
-        if hasattr(FreeCAD, "svgpatterns"):
-            return FreeCAD.svgpatterns
+        if hasattr(App, "svgpatterns"):
+            return App.svgpatterns
     return {}
 
 
@@ -926,10 +788,8 @@ svgpatterns = svg_patterns
 
 
 def get_rgb(color, testbw=True):
-    """getRGB(color,[testbw])
-    
-    Return a rgb value #000000 from a freecad color
-    
+    """Return an RRGGBB value #000000 from a FreeCAD color.
+
     Parameters
     ----------
     testwb : bool (default = True)
@@ -941,8 +801,8 @@ def get_rgb(color, testbw=True):
     col = "#"+r+g+b
     if testbw:
         if col == "#ffffff":
-            #print(getParam('SvgLinesBlack'))
-            if getParam('SvgLinesBlack',True):
+            # print(getParam('SvgLinesBlack'))
+            if getParam('SvgLinesBlack', True):
                 col = "#000000"
     return col
 
@@ -1000,9 +860,9 @@ def get_DXF(obj,direction=None):
         import Drawing
         import DraftVecUtils
         if not direction:
-            direction = FreeCAD.Vector(0,0,-1)
+            direction = App.Vector(0,0,-1)
         if DraftVecUtils.isNull(direction):
-            direction = FreeCAD.Vector(0,0,-1)
+            direction = App.Vector(0,0,-1)
         try:
             d = Drawing.projectToDXF(obj.Shape,direction)
         except:
@@ -1019,64 +879,6 @@ def get_DXF(obj,direction=None):
 getDXF = get_DXF
 
 
-def get_movable_children(objectslist, recursive=True):
-    """Return a list of objects with child objects that move with a host.
-
-    Builds a list of objects with all child objects (`obj.OutList`)
-    that have their `MoveWithHost` attribute set to `True`.
-    This function is mostly useful for Arch Workbench objects.
-
-    Parameters
-    ----------
-    objectslist : list of App::DocumentObject
-        A single scripted object or list of objects.
-
-    recursive : bool, optional
-        It defaults to `True`, in which case the function
-        is called recursively to also extract the children of children
-        objects.
-        Otherwise, only direct children of the input objects
-        are added to the output list.
-
-    Returns
-    -------
-    list
-        List of children objects that have their `MoveWithHost` attribute
-        set to `True`.
-    """
-    added = []
-    if not isinstance(objectslist, list):
-        objectslist = [objectslist]
-    for obj in objectslist:
-        # Skips some objects that should never move their children
-        if getType(obj) not in ("Clone", "SectionPlane",
-                                "Facebinder", "BuildingPart"):
-            children = obj.OutList
-            if hasattr(obj, "Proxy"):
-                if obj.Proxy:
-                    if (hasattr(obj.Proxy, "getSiblings")
-                            and getType(obj) not in ("Window")):
-                        # children.extend(obj.Proxy.getSiblings(obj))
-                        pass
-            for child in children:
-                if hasattr(child, "MoveWithHost"):
-                    if child.MoveWithHost:
-                        if hasattr(obj, "CloneOf"):
-                            if obj.CloneOf:
-                                if obj.CloneOf.Name != child.Name:
-                                    added.append(child)
-                            else:
-                                added.append(child)
-                        else:
-                            added.append(child)
-            if recursive:
-                added.extend(getMovableChildren(children))
-    return added
-
-
-getMovableChildren = get_movable_children
-
-
 def filter_objects_for_modifiers(objects, isCopied=False):
     filteredObjects = []
     for obj in objects:
@@ -1089,7 +891,7 @@ def filter_objects_for_modifiers(objects, isCopied=False):
                 warningMessage = _tr("%s shares a base with %d other objects. Please check if you want to modify this.") % (obj.Name,len(parents) - 1)
                 App.Console.PrintError(warningMessage)
                 if App.GuiUp:
-                    FreeCADGui.getMainWindow().showMessage(warningMessage, 0)
+                    Gui.getMainWindow().showMessage(warningMessage, 0)
             filteredObjects.append(obj.Base)
         elif hasattr(obj,"Placement") and obj.getEditorMode("Placement") == ["ReadOnly"] and not isCopied:
             App.Console.PrintError(_tr("%s cannot be modified because its placement is readonly.") % obj.Name)
@@ -1107,38 +909,6 @@ def is_closed_edge(edge_index, object):
 
 
 isClosedEdge = is_closed_edge
-
-
-def convert_draft_texts(textslist=[]):
-    """
-    converts the given Draft texts (or all that is found
-    in the active document) to the new object
-    This function was already present at splitting time during v 0.19
-    """
-    if not isinstance(textslist,list):
-        textslist = [textslist]
-    if not textslist:
-        for o in FreeCAD.ActiveDocument.Objects:
-            if o.TypeId == "App::Annotation":
-                textslist.append(o)
-    todelete = []
-    for o in textslist:
-        l = o.Label
-        o.Label = l+".old"
-        obj = makeText(o.LabelText,point=o.Position)
-        obj.Label = l
-        todelete.append(o.Name)
-        for p in o.InList:
-            if p.isDerivedFrom("App::DocumentObjectGroup"):
-                if o in p.Group:
-                    g = p.Group
-                    g.append(obj)
-                    p.Group = g
-    for n in todelete:
-        FreeCAD.ActiveDocument.removeObject(n)
-
-
-convertDraftTexts = convert_draft_texts
 
 
 def utf8_decode(text):
@@ -1232,3 +1002,127 @@ def print_header(name, description, debug=True):
     if debug:
         _msg(16 * "-")
         _msg(description)
+
+
+def find_doc(doc=None):
+    """Return the active document or find a document by name.
+
+    Parameters
+    ----------
+    doc: App::Document or str, optional
+        The document that will be searched in the session.
+        It defaults to `None`, in which case it tries to find
+        the active document.
+        If `doc` is a string, it will try to get the document by `Name`.
+
+    Returns
+    -------
+    bool, App::Document
+        A tuple containing the information on whether the search
+        was successful. In this case, the boolean is `True`,
+        and the second value is the document instance.
+
+    False, None
+        If there is no active document, or the string in `doc`
+        doesn't correspond to an open document in the session.
+    """
+    FOUND = True
+
+    if not doc:
+        doc = App.activeDocument()
+    if not doc:
+        return not FOUND, None
+
+    if isinstance(doc, str):
+        try:
+            doc = App.getDocument(doc)
+        except NameError:
+            _msg("document: {}".format(doc))
+            _err(_tr("Wrong input: unknown document."))
+            return not FOUND, None
+
+    return FOUND, doc
+
+
+def find_object(obj, doc=None):
+    """Find object in the document, inclusive by Label.
+
+    Parameters
+    ----------
+    obj: App::DocumentObject or str
+        The object to search in `doc`.
+        Or if the `obj` is a string, it will search the object by `Label`.
+        Since Labels are not guaranteed to be unique, it will get the first
+        object with that label in the document.
+
+    doc: App::Document or str, optional
+        The document in which the object will be searched.
+        It defaults to `None`, in which case it tries to search in the
+        active document.
+        If `doc` is a string, it will search the document by `Name`.
+
+    Returns
+    -------
+    bool, App::DocumentObject
+        A tuple containing the information on whether the search
+        was successful. In this case, the boolean is `True`,
+        and the second value is the object found.
+
+    False, None
+        If the object doesn't exist in the document.
+    """
+    FOUND = True
+
+    found, doc = find_doc(doc)
+    if not found:
+        _err(_tr("No active document. Aborting."))
+        return not FOUND, None
+
+    if isinstance(obj, str):
+        try:
+            obj = doc.getObjectsByLabel(obj)[0]
+        except IndexError:
+            return not FOUND, None
+
+    if obj not in doc.Objects:
+        return not FOUND, None
+
+    return FOUND, obj
+
+
+def use_instead(function, version=""):
+    """Print a deprecation message and suggest another function.
+
+    This function must be used inside the definition of a function
+    that has been considered for deprecation, so we must provide
+    an alternative.
+    ::
+        def old_function():
+            use_instead('new_function', 1.0)
+
+        def someFunction():
+            use_instead('some_function')
+
+    Parameters
+    ----------
+    function: str
+        The name of the function to use instead of the current one.
+
+    version: float or str, optional
+        It defaults to the empty string `''`.
+        The version where this command is to be deprecated, if it is known.
+        If we don't know when this command will be deprecated
+        then we should not give a version.
+    """
+    text = "This function will be deprecated in "
+    text2 = "This function will be deprecated. "
+    text3 = "Please use "
+
+    if version:
+        _wrn(_tr(text) + "{}. ".format(version)
+             + _tr(text3) + "'{}'.".format(function))
+    else:
+        _wrn(_tr(text2)
+             + _tr(text3) + "'{}'.".format(function))
+
+## @}

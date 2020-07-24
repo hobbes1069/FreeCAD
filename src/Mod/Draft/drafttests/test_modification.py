@@ -21,12 +21,19 @@
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-"""Unit test for the Draft Workbench, object modification tests."""
+"""Unit tests for the Draft Workbench, object modification tests."""
+## @package test_modification
+# \ingroup drafttests
+# \brief Unit tests for the Draft Workbench, object modification tests.
 
+## \addtogroup drafttests
+# @{
 import unittest
+
 import FreeCAD as App
 import Draft
 import drafttests.auxiliary as aux
+
 from FreeCAD import Vector
 from draftutils.messages import _msg, _wrn
 
@@ -468,11 +475,13 @@ class DraftModification(unittest.TestCase):
 
         number = 4
         translation = Vector(0, 1, 0)
+        subelements = "Edge1"
         align = False
         _msg("  Path Array")
         _msg("  number={}, translation={}".format(number, translation))
-        _msg("  align={}".format(align))
-        obj = Draft.make_path_array(poly, wire, number, translation, align)
+        _msg("  subelements={}, align={}".format(subelements, align))
+        obj = Draft.make_path_array(poly, wire, number,
+                                    translation, subelements, align)
         self.assertTrue(obj, "'{}' failed".format(operation))
 
     def test_point_array(self):
@@ -589,3 +598,5 @@ class DraftModification(unittest.TestCase):
         This is executed after each test, so we close the document.
         """
         App.closeDocument(self.doc_name)
+
+## @}
